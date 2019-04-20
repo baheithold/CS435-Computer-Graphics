@@ -74,8 +74,6 @@ var minY;
 var snake_segments = [];
 var snake_start_x;
 var snake_start_y;
-var snake_head_pos_x;
-var snake_head_pos_y;
 
 function configureTexture(image) {
   texture = gl.createTexture();
@@ -204,9 +202,7 @@ window.onload = function init() {
   minY = -0.8;
   snake_start_x = minX;
   snake_start_y = maxY;
-  snake_head_pos_x = snake_start_x;
-  snake_head_pos_y = snake_start_y;
-  snake_segments.push({x: snake_head_pos_x, y: snake_head_pos_y})
+  snake_segments.push({x: snake_start_x, y: snake_start_y})
   apple_start_x = 0;
   apple_start_y = 0;
   apple_pos_x = apple_start_x;
@@ -240,11 +236,8 @@ window.onload = function init() {
     }
     else if (event.keyCode == 13) {
         // Reset Button
-        if (debug) console.log("RESET");
         paused = true;
         score = 0;
-        snake_head_pos_x = snake_start_x;
-        snake_head_pos_y = snake_start_y;
         snake_segments = [];
         snake_segments.push({x: snake_start_x, y: snake_start_y});
         apple_pos_x = apple_start_x;
@@ -257,45 +250,30 @@ window.onload = function init() {
 
   render();
   setInterval(function() {
+      var head_x = snake_segments[0].x;
+      var head_y = snake_segments[0].y;
       if (paused) render(); // paused
       else {
           // unpaused
-          switch(direction) {
-              case 'up':
-                  snake_head_pos_y += 0.1;
-                  if (snake_head_pos_y > maxY) snake_head_pos_y = minY;
-                  break;
-              case 'down':
-                  snake_head_pos_y -= 0.1;
-                  if (snake_head_pos_y < minY) snake_head_pos_y = maxY;
-                  break;
-              case 'left':
-                  snake_head_pos_x -= 0.1;
-                  if (snake_head_pos_x < minX) snake_head_pos_x = maxX;
-                  break;
-              case 'right':
-                  snake_head_pos_x += 0.1;
-                  if (snake_head_pos_x > maxX) snake_head_pos_x = minX;
-                  break;
-          }
-          snake_segments[0].x = snake_head_pos_x;
-          snake_segments[0].y = snake_head_pos_y;
-          if (debug) console.log("SNAKE: " + snake_head_pos_x + ", " + snake_head_pos_y);
+          moveSnake();
           if (didEatApple()) {
               // snake ate apple
               updateScore();
               extendSnake();
               moveApple();
           }
+          if (didSnakeEatSelf()) {
+              gameOver = true;
+          }
           if (gameOver) {
               // Game Over
               document.getElementById("game_status").innerHTML = "Game Over";
-              if (debug) console.log("Game Over!");
               paused = true;
+              gameOver = false;
           }
           requestAnimFrame(render);
       }
-  }, 500);
+  }, 250);
 
 }
 
@@ -394,10 +372,11 @@ function randomPos() {
 }
 
 function didEatApple() {
-    var xDiff = snake_head_pos_x - apple_pos_x;
-    var yDiff = snake_head_pos_y - apple_pos_y;
+    var head_x = snake_segments[0].x;
+    var head_y = snake_segments[0].y;
+    var xDiff = head_x - apple_pos_x;
+    var yDiff = head_y - apple_pos_y;
     if (Math.abs(xDiff) < 0.00001 && Math.abs(yDiff) < 0.00001) {
-        if (debug) console.log("MUNCH!");
         return true;
     }
     return false;
@@ -411,6 +390,44 @@ function moveApple() {
 }
 
 function moveSnake() {
+    // Move Head (don't set new head pos until after body is moved)
+    var new_head_x;
+    var new_head_y;
+    switch (direction) {
+        case 'up':
+            new_head_x = snake_segments[0].x;
+            new_head_y = snake_segments[0].y + 0.1;
+            break;
+        case 'down':
+            new_head_x = snake_segments[0].x;
+            new_head_y = snake_segments[0].y - 0.1;
+            break;
+        case 'left':
+            new_head_x = snake_segments[0].x - 0.1
+            new_head_y = snake_segments[0].y;
+            break;
+        case 'right':
+            new_head_x = snake_segments[0].x + 0.1
+            new_head_y = snake_segments[0].y;
+            break;
+    }
+
+    // Move Body
+    for (var i = snake_segments.length - 1; i >= 1; i--) {
+        var curr = snake_segments[i];
+        var p = snake_segments[i - 1];
+        var newX = p.x;
+        var newY = p.y;
+        snake_segments[i].x = newX;
+        snake_segments[i].y = newY;
+    }
+    // Set new head pos
+    if (new_head_x > maxX) new_head_x = minX;
+    else if (new_head_x < minX) new_head_x = maxX;
+    else if (new_head_y > maxY) new_head_y = minY;
+    else if (new_head_y < minY) new_head_y = maxY;
+    snake_segments[0].x = new_head_x;
+    snake_segments[0].y = new_head_y;
 }
 
 function extendSnake() {
@@ -441,4 +458,17 @@ function extendSnake() {
 function updateScore() {
     score++;
     document.getElementById("score").innerHTML = score;
+}
+
+function didSnakeEatSelf() {
+    if (snake_segments.length < 2) return false;
+    var head_x = snake_segments[0].x;
+    var head_y = snake_segments[0].y;
+    for (var i = 1; i < snake_segments.length; i++) {
+        if (head_x == snake_segments[i].x && head_y == snake_segments[i].y) {
+            // if snake's head collides with any other snake segment
+            return true;
+        }
+    }
+    return false;
 }
