@@ -63,9 +63,17 @@ var thetaLoc;
 
 // Game Variables
 var debug;
+var gameOver;
 var score;
 var paused;
 var direction;
+var maxX;
+var minX;
+var maxY;
+var minY;
+var snake_segments = [];
+var snake_start_x;
+var snake_start_y;
 var snake_head_pos_x;
 var snake_head_pos_y;
 var snake_tail_pos_x;
@@ -191,12 +199,21 @@ window.onload = function init() {
 
   // Initialize Game Variables
   debug = true; // set true for debugging logs
-  snake_head_pos_x = -0.8;
-  snake_head_pos_y = 0.8;
+  gameOver = false;
+  maxX = 0.8;
+  minX = -0.8;
+  maxY = 0.8;
+  minY = -0.8;
+  snake_start_x = minX;
+  snake_start_y = maxY;
+  snake_head_pos_x = snake_start_x;
+  snake_head_pos_y = snake_start_y;
   snake_tail_pos_x = -0.8;
   snake_tail_pos_y = 0.8;
-  apple_pos_x = 0;
-  apple_pos_y = 0;
+  apple_start_x = 0;
+  apple_start_y = 0;
+  apple_pos_x = apple_start_x;
+  apple_pos_y = apple_start_y;
   score = 0;
   paused = true;
   direction = 'right';
@@ -205,81 +222,75 @@ window.onload = function init() {
   document.addEventListener("keyup", function () {
     if (event.keyCode == 38) {
         // Up Button
-        direction = 'up';
-        if (debug) console.log("Direction: " + direction);
+        if (direction != 'down') direction = 'up';
     }
     else if (event.keyCode == 40) {
         // Down Button
-        direction = 'down';
-        if (debug) console.log("Direction: " + direction);
+        if (direction != 'up') direction = 'down';
     }
     else if (event.keyCode == 37) {
         // Left Button
-        direction = 'left';
-        if (debug) console.log("Direction: " + direction);
+        if (direction != 'right') direction = 'left';
     }
     else if (event.keyCode == 39) {
         // Right Button
-        direction = 'right';
-        if (debug) console.log("Direction: " + direction);
+        if (direction != 'left') direction = 'right';
     }
     else if (event.keyCode == 32) {
         // Pause Button
         paused = !paused;
-        if (debug) console.log(paused ? "Paused" : "Unpaused");
+        document.getElementById("game_status").innerHTML = paused ? "Paused" : "Slithering";
     }
     else if (event.keyCode == 13) {
         // Random position (used for debugging)
-        if (debug) {
-            var x = randomPos();
-            var y = randomPos();
-            console.log("Random X: " + x);
-            console.log("Random Y: " + y);
-            apple_pos_x = x;
-            apple_pos_y = y;
-            document.getElementById("score").innerHTML = ++score;
-        }
+        if (debug) console.log("RESET");
+        paused = true;
+        score = 0;
+        snake_head_pos_x = snake_start_x;
+        snake_head_pos_y = snake_start_y;
+        apple_pos_x = apple_start_x;
+        apple_pos_y = apple_start_y;
+        direction = 'right';
+        document.getElementById("game_status").innerHTML = "Paused";
+        document.getElementById("score").innerHTML = score;
     }
   })
 
-  document.addEventListener("mousedown", function(event) {
-      // Used for debugging
-      if (debug) {
-          var x = event.clientX;
-          var y = event.clientY;
-          console.log("Mouse X: " + x);
-          console.log("Mouse Y: " + y);
-      }
-  });
-
   render();
   setInterval(function() {
-      if (debug) {
-          console.log("SCORE: " + score);
-      }
       if (paused) render();
       else {
           switch(direction) {
               case 'up':
                   snake_head_pos_y += 0.1;
+                  if (snake_head_pos_y > maxY) snake_head_pos_y = minY;
                   break;
               case 'down':
                   snake_head_pos_y -= 0.1;
+                  if (snake_head_pos_y < minY) snake_head_pos_y = maxY;
                   break;
               case 'left':
                   snake_head_pos_x -= 0.1;
+                  if (snake_head_pos_x < minX) snake_head_pos_x = maxX;
                   break;
               case 'right':
                   snake_head_pos_x += 0.1;
+                  if (snake_head_pos_x > maxX) snake_head_pos_x = minX;
                   break;
           }
           if (debug) console.log("SNAKE: " + snake_head_pos_x + ", " + snake_head_pos_y);
           if (ateApple()) {
               updateScore();
+              moveApple();
+          }
+          if (gameOver) {
+              document.getElementById("game_status").innerHTML = "Game Over";
+              if (debug) console.log("Game Over!");
+              paused = true;
           }
           requestAnimFrame(render);
       }
-  }, 1500);
+  }, 750);
 
 }
 
@@ -381,6 +392,13 @@ function ateApple() {
         return true;
     }
     return false;
+}
+
+function moveApple() {
+    var newX = randomPos();
+    var newY = randomPos();
+    apple_pos_x = newX;
+    apple_pos_y = newY;
 }
 
 function updateScore() {

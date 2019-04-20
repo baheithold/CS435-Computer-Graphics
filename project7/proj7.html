@@ -74,9 +74,8 @@ main()
 
 
 <body>
-    <h1 style="color:green">Snake!</h1>
-    <h1 style="color:green">Score:</h1>
-    <h2 style="color:red" id="score">0</h2>
+    <h1 style="color:green">Snake! <span style="color:red" id="game_status">Paused</span></h1>
+    <h1 style="color:green">Score: <span id="score">0</span></h1>
     <canvas id="gl-canvas" width="512" height="512">
         Oops ... your browser doesn't support the HTML5 canvas element
     </canvas>
@@ -84,7 +83,10 @@ main()
     <img id="apple" src="apple.gif" hidden></img>
     <img id="dirt" src="dirt.gif" hidden></img>
     <img id="snake" src="snake.gif" hidden></img>
-    <p>Use the <b>Arrow Keys</b> to change direction.<br>Use the <b>Space Bar</b> to Pause/Unpause the game.</p>
+    <p>
+        Use the <b>Arrow Keys</b> to change direction.<br>Use the <b>Space Bar</b> to Pause/Unpause the game.
+        <br>Use the <b>Enter Button</b> to Reset the game.
+    </p>
 </body>
 
 </html>
