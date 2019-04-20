@@ -273,7 +273,7 @@ window.onload = function init() {
           }
           requestAnimFrame(render);
       }
-  }, 250);
+  }, 500);
 
 }
 
@@ -385,6 +385,19 @@ function didEatApple() {
 function moveApple() {
     var newX = randomPos();
     var newY = randomPos();
+    var valid_new_position = false;
+    while (!valid_new_position) {
+        for (var i = 0; i < snake_segments.length; i++) {
+            if (newX != snake_segments[i].x && newY != snake_segments[i].y) {
+                valid_new_position = true;
+                break;
+            }
+            else {
+                newX = randomPos();
+                newY = randomPos();
+            }
+        }
+    }
     apple_pos_x = newX;
     apple_pos_y = newY;
 }
