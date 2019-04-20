@@ -76,8 +76,6 @@ var snake_start_x;
 var snake_start_y;
 var snake_head_pos_x;
 var snake_head_pos_y;
-var snake_tail_pos_x;
-var snake_tail_pos_y;
 
 function configureTexture(image) {
   texture = gl.createTexture();
@@ -208,8 +206,7 @@ window.onload = function init() {
   snake_start_y = maxY;
   snake_head_pos_x = snake_start_x;
   snake_head_pos_y = snake_start_y;
-  snake_tail_pos_x = -0.8;
-  snake_tail_pos_y = 0.8;
+  snake_segments.push({x: snake_head_pos_x, y: snake_head_pos_y})
   apple_start_x = 0;
   apple_start_y = 0;
   apple_pos_x = apple_start_x;
@@ -220,20 +217,20 @@ window.onload = function init() {
 
   // Key Listeners
   document.addEventListener("keyup", function () {
-    if (event.keyCode == 38) {
-        // Up Button
+    if (event.keyCode == 38 || event.keyCode == 87) {
+        // Up Button or W key
         if (direction != 'down') direction = 'up';
     }
-    else if (event.keyCode == 40) {
-        // Down Button
+    else if (event.keyCode == 40 || event.keyCode == 83) {
+        // Down Button or S key
         if (direction != 'up') direction = 'down';
     }
-    else if (event.keyCode == 37) {
-        // Left Button
+    else if (event.keyCode == 37 || event.keyCode == 65) {
+        // Left Button or A key
         if (direction != 'right') direction = 'left';
     }
-    else if (event.keyCode == 39) {
-        // Right Button
+    else if (event.keyCode == 39 || event.keyCode == 68) {
+        // Right Button or D key
         if (direction != 'left') direction = 'right';
     }
     else if (event.keyCode == 32) {
@@ -242,12 +239,13 @@ window.onload = function init() {
         document.getElementById("game_status").innerHTML = paused ? "Paused" : "Slithering";
     }
     else if (event.keyCode == 13) {
-        // Random position (used for debugging)
+        // Reset Button
         if (debug) console.log("RESET");
         paused = true;
         score = 0;
         snake_head_pos_x = snake_start_x;
         snake_head_pos_y = snake_start_y;
+        snake_segments = [];
         apple_pos_x = apple_start_x;
         apple_pos_y = apple_start_y;
         direction = 'right';
@@ -258,8 +256,9 @@ window.onload = function init() {
 
   render();
   setInterval(function() {
-      if (paused) render();
+      if (paused) render(); // paused
       else {
+          // unpaused
           switch(direction) {
               case 'up':
                   snake_head_pos_y += 0.1;
@@ -278,19 +277,24 @@ window.onload = function init() {
                   if (snake_head_pos_x > maxX) snake_head_pos_x = minX;
                   break;
           }
+          snake_segments[0].x = snake_head_pos_x;
+          snake_segments[0].y = snake_head_pos_y;
           if (debug) console.log("SNAKE: " + snake_head_pos_x + ", " + snake_head_pos_y);
-          if (ateApple()) {
+          if (didEatApple()) {
+              // snake ate apple
               updateScore();
+              extendSnake();
               moveApple();
           }
           if (gameOver) {
+              // Game Over
               document.getElementById("game_status").innerHTML = "Game Over";
               if (debug) console.log("Game Over!");
               paused = true;
           }
           requestAnimFrame(render);
       }
-  }, 750);
+  }, 500);
 
 }
 
@@ -300,7 +304,7 @@ var render = function () {
   leftWall();
   rightWall();
   dirt();
-  snake(snake_head_pos_x, snake_head_pos_y);
+  snake();
   apple(apple_pos_x, apple_pos_y);
   bottomWall();
   topWall();
@@ -337,14 +341,18 @@ function apple(xPos, yPos) {
   gl.drawArrays(gl.TRIANGLES, 0, numVertices);
 }
 
-function snake(xPos, yPos) {
-  var s = scalem(0.1, 0.1, 1);
-  var instanceMatrix = mult(translate(xPos, yPos, 0.0), s);
-  instanceMatrix = mult(instanceMatrix, rotate(180, 1, 0, 0));
-  var t = mult(modelViewMatrix, instanceMatrix);
-  gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(t));
-  gl.bindTexture(gl.TEXTURE_2D, snakeImage);
-  gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+function snake() {
+  for (var i = 0; i < snake_segments.length; i++) {
+      var s = scalem(0.1, 0.1, 1);
+      var xPos = snake_segments[i].x;
+      var yPos = snake_segments[i].y;
+      var instanceMatrix = mult(translate(xPos, yPos, 0.0), s);
+      instanceMatrix = mult(instanceMatrix, rotate(180, 1, 0, 0));
+      var t = mult(modelViewMatrix, instanceMatrix);
+      gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(t));
+      gl.bindTexture(gl.TEXTURE_2D, snakeImage);
+      gl.drawArrays(gl.TRIANGLES, 0, numVertices);
+  }
 }
 
 function dirt() {
@@ -384,7 +392,7 @@ function randomPos() {
     return result;
 }
 
-function ateApple() {
+function didEatApple() {
     var xDiff = snake_head_pos_x - apple_pos_x;
     var yDiff = snake_head_pos_y - apple_pos_y;
     if (Math.abs(xDiff) < 0.00001 && Math.abs(yDiff) < 0.00001) {
@@ -399,6 +407,34 @@ function moveApple() {
     var newY = randomPos();
     apple_pos_x = newX;
     apple_pos_y = newY;
+}
+
+function moveSnake() {
+}
+
+function extendSnake() {
+    var tail = snake_segments[snake_segments.length - 1];
+    var newX;
+    var newY;
+    switch(direction) {
+        case 'up':
+            newX = tail.x;
+            newY = tail.y - 0.1;
+            break;
+        case 'down':
+            newX = tail.x;
+            newY = tail.y + 0.1;
+            break;
+        case 'left':
+            newX = tail.x + 0.1;
+            newY = tail.y;
+            break;
+        case 'right':
+            newX = tail.x - 0.1;
+            newY = tail.y;
+            break;
+    }
+    snake_segments.push({x: newX, y: newY})
 }
 
 function updateScore() {
