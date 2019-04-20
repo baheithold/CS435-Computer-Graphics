@@ -246,6 +246,7 @@ window.onload = function init() {
         snake_head_pos_x = snake_start_x;
         snake_head_pos_y = snake_start_y;
         snake_segments = [];
+        snake_segments.push({x: snake_start_x, y: snake_start_y});
         apple_pos_x = apple_start_x;
         apple_pos_y = apple_start_y;
         direction = 'right';
